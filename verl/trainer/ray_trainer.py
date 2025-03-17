@@ -596,10 +596,13 @@ class RayPPOTrainer:
                 self.global_step += 1
                 if self.global_step > self.training_steps:
                     break
-
                 metrics, timing_raw = {}, {}
                 batch: DataProto = DataProto.from_single_dict(batch_dict)
-
+                # critic_batch = batch.pop(
+                #     batch_keys=[],
+                #     non_tensor_batch_keys=[self.config.data.prompt_key, self.config.data.answer_key, self.config.data.image_key]
+                # )
+                # print('\ncritic_batch:\n{}\n'.format(critic_batch))
                 # pop those keys for generation
                 if "multi_modal_inputs" in batch.non_tensor_batch.keys():
                     gen_batch = batch.pop(
@@ -611,12 +614,17 @@ class RayPPOTrainer:
                         batch_keys=["input_ids", "attention_mask", "position_ids"],
                         non_tensor_batch_keys=["raw_prompt_ids"],
                     )
-
+                critic_data = {k : batch.non_tensor_batch[k] for k in [self.config.data.prompt_key, self.config.data.answer_key, self.config.data.image_key]}
+                print('\naft:\n{}\n'.format(batch))
+                print('\ncritic_data:\n{}\n'.format(critic_data))
                 with _timer("step", timing_raw):
                     # generate a batch
                     with _timer("gen", timing_raw):  # wg: worker group
                         gen_batch_output = self.actor_rollout_wg.generate_sequences(gen_batch)
-
+                    print('\ngen_batch_output\n{}\n'.format(gen_batch_output))
+                    print('\ntemp:\n{}\ntype: {}\n'.format(gen_batch_output.batch['responses'], type(gen_batch_output.batch['responses'])))
+                    decoded_texts = self.tokenizer.batch_decode(gen_batch_output.batch['responses'], skip_special_tokens=True)
+                    import pdb; pdb.set_trace()
                     if self.config.algorithm.adv_estimator == "remax":
                         with _timer("gen_max", timing_raw):
                             gen_baseline_batch = deepcopy(gen_batch)

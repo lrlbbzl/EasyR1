@@ -126,7 +126,7 @@ class RLHFDataset(Dataset):
             prompt = prompt.replace("<image>", "<|vision_start|><|image_pad|><|vision_end|>")
             row_dict["multi_modal_data"] = {
                 "image": [
-                    process_image(image, self.max_pixels, self.min_pixels) for image in row_dict.pop(self.image_key)
+                    process_image(image, self.max_pixels, self.min_pixels) for image in row_dict[self.image_key]
                 ]
             }
             model_inputs = self.processor(row_dict["multi_modal_data"]["image"], prompt, return_tensors="pt")
@@ -158,5 +158,5 @@ class RLHFDataset(Dataset):
         row_dict["attention_mask"] = attention_mask
         row_dict["position_ids"] = position_ids
         row_dict["raw_prompt_ids"] = self.tokenizer.encode(prompt, add_special_tokens=False)
-        row_dict["ground_truth"] = row_dict.pop(self.answer_key)
+        row_dict["ground_truth"] = row_dict[self.answer_key]
         return row_dict
